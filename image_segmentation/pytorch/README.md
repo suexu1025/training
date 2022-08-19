@@ -117,6 +117,57 @@ The `runtime/` folder contains scripts with training and inference logic. Its co
 * `logging.py`: Defines the MLPerf logger.
 * `training.py`: Defines the training loop.
 
+## Parameters
+ 
+The complete list of the available parameters for the main.py script contains:
+
+### Input/Output parameters
+* `--data_dir`: Set the input directory containing the dataset (Required, default: `None`).
+* `--log_dir`: Set the output directory for logs (default: `/tmp`).
+* `--save_ckpt_path`: Path with a filename to save the checkpoint to (default: `None`). 
+* `--load_ckpt_path`: Path with a filename to load the checkpoint from (default: `None`). 
+* `--loader`: Loader to use (default: `pytorch`).
+* `--local_rank`: Local rank for distributed training (default: `os.environ.get("LOCAL_RANK", 0)`).
+
+### Runtime parameters
+* `--exec_mode`: Select the execution mode to run the model (default: `train`). Modes available:
+  * `train` - trains a model with given parameters. 
+  * `evaluate` - loads checkpoint (if available) and performs evaluation on validation subset.
+* `--batch_size`: Size of each minibatch per GPU (default: `2`).
+* `--ga_steps`: Number of steps for gradient accumulation (default: `1`).
+* `--epochs`: Maximum number of epochs for training (default: `1`).
+* `--evaluate_every`: Epoch interval for evaluation (default: `20`).
+* `--start_eval_at`: First epoch to start running evaluation at (default: `1000`).
+* `--layout`: Data layout (default: `NCDHW`. `NDHWC` is not implemented).
+* `--input_shape`: Input shape for images during training (default: `[128, 128, 128]`).
+* `--val_input_shape`: Input shape for images during evaluation (default: `[128, 128, 128]`).
+* `--seed`: Set random seed for reproducibility (default: `None` - picks a random number from `/dev/urandom`).
+* `--num_workers`: Number of workers used for dataloading (default: `8`).
+* `--benchmark`: Enable performance benchmarking (disabled by default). If the flag is set, the script runs in a benchmark mode - each iteration is timed and the performance result (in images per second) is printed at the end.
+* `--warmup_steps`: Used only for during benchmarking - the number of steps to skip (default: `200`). First iterations are usually much slower since the graph is being constructed. Skipping the initial iterations is required for a fair performance assessment.
+* `--amp`: Enable automatic mixed precision (disabled by default).
+* `--device`: Select the backend device framework to use for running the model (default: `cuda`). Devices available:
+  * `cuda` - [PyTorch CUDA](https://pytorch.org/docs/stable/cuda.html)
+  * `xla` - [PyTorch/XLA](https://github.com/pytorch/xla)
+
+### Optimizer parameters
+* `--optimizer`: Type of optimizer to use (default: `sgd`, choices=`sgd, adam, lamb`).
+* `--learning_rate`: Learning rate (default: `1.0`).
+* `--momentum`: Momentum for SGD optimizer (default: `0.9`).
+* `--init_learning_rate`: Initial learning rate used for learning rate warm up (default: `1e-4`).
+* `--lr_warmup_epochs`: Number of epochs for learning rate warm up (default: `0`).
+* `--lr_decay_epochs`: Milestones for MultiStepLR learning rate decay (default: `None`).
+* `--lr_decay_factor`: Factor for MultiStepLR learning rate decay (default: `1.0`).
+* `--lamb_betas`: Beta1 and Beta2 parameters for LAMB optimizer (default: `0.9, 0.999`).
+* `--weight_decay`: Weight decay factor (default: `0.0`).
+
+### Other parameters
+* `--verbose`: Whether to display `tqdm` progress bars during training (default: `False`).
+* `--debug`: Whether to log the train loss on every iteration (default: `False`).
+* `--oversampling`: Oversampling for biased crop (default: `0.4`).
+* `--overlap`: Overlap for sliding window (default: `0.5`).
+* `--cudnn_benchmark`: Whether to use cuDNN benchmark (default: `False`).
+* `--cudnn_deterministic`: Whether to use cuDNN deterministic (default: `False`).
  
 # 3. Quality
 
@@ -157,3 +208,48 @@ The validation dataset is composed of 42 volumes. They were pre-selected, and th
 A valid score is obtained as an average `mean_dice` score across the whole 42 volumes. Please mind that a multi-worker training in popular frameworks is using so-called samplers to shard the data.
 Such samplers tend to shard the data equally across all workers. For convenience, this is achieved by either truncating the dataset, so it is divisible by the number of workers,
 or the "missing" data is copied. This most likely will influence the final score - a valid evaluation is performed on exactly 42 volumes and each volume's score has a weight of 1/42 of the total sum of the scores. 
+
+# 4. PyTorch/XLA Performance Profiling
+
+For PyTorch/XLA users who are training the UNet3D model with the `--device xla` flag turned on, you can optionally profile the performance of PyTorch/XLA by providing `--profile_port ${PROFILE_PORT}` to `main.py` and running `capture_profile.py` along with it. The detailed steps for PyTorch/XLA performance profiling are outlined below.
+
+## Step 1: Launch `main.py` with `--profile_port ${PROFILE_PORT}`
+For example, to launch `main.py` with `profile_port = 9001`, run
+```shell
+python3 main.py --data_dir ${DATASET_DIR} \
+  --epochs ${MAX_EPOCHS} \
+  --evaluate_every ${EVALUATE_EVERY} \
+  --start_eval_at ${START_EVAL_AT} \
+  --quality_threshold ${QUALITY_THRESHOLD} \
+  --batch_size ${BATCH_SIZE} \
+  --optimizer sgd \
+  --ga_steps ${GRADIENT_ACCUMULATION_STEPS} \
+  --learning_rate ${LEARNING_RATE} \
+  --seed ${SEED} \
+  --lr_warmup_epochs ${LR_WARMUP_EPOCHS} \
+  --debug \
+  --device xla \
+  --profile_port 9001
+```
+
+## Step 2: Launch `capture_profile.py`
+Once the training has started, open a separate shell session and run `capture_profile.py` to trace its performance. Make sure that the `service_addr` argument for `capture_profile.py` matches with the `profile_port` argument for the train script.
+
+For example:
+```shell
+python3 capture_profile.py --service_addr "localhost:9001" --logdir "gs://path/to/logdir" --duration_ms 30000
+```
+will trace the training performance for `30000` milliseconds upon starting and dump the output performance profile to `"gs://path/to/logdir"`
+
+## Step 3: View PyTorch/XLA Performance Profile using Tensorboard
+Once the output performance profile is saved, you can visualize it using Tensorboard on your machine.
+
+For example, if the output performance profile is saved at `"gs://path/to/logdir"`, you can run
+```
+tensorboard --logdir gs://path/to/logdir --port 8001
+```
+to launch tensorboard on port `8001`. Visit `http://localhost:8001/#profile` on your machine to view the performance profile.
+
+## Helpful Links
+* Tensorboard User Guide: https://www.tensorflow.org/tensorboard/get_started
+* Cloud TPU Guide on PyTorch/XLA Performance Profiling: https://cloud.google.com/tpu/docs/pytorch-xla-performance-profiling-tpu-vm
