@@ -83,9 +83,8 @@ def main(local_rank, flags):
         pprint(vars(model))
         if flags.use_nested_fsdp or flags.use_grad_ckpt:
             # applying the wrappers above to the FSDP layers
-	        for i in range(len(model.downsample)):
+            for i in range(len(model.downsample)):
                 model.downsample[i] = nested_fsdp_wrap(grad_ckpt_wrap(model.downsample[i]))
-
             for i in range(len(model.upsample)):
                 model.upsample[i] = nested_fsdp_wrap(grad_ckpt_wrap(model.upsample[i]))
         # Wrap the base model with an outer FSDP wrapper
