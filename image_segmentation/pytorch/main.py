@@ -71,6 +71,21 @@ def main(local_rank, flags):
     flags.seed = worker_seed
     model = Unet3D(1, 3, normalization=flags.normalization, activation=flags.activation)
 
+    if flags.use_fsdp:
+        from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as FSDP, checkpoint_module
+
+        if False:
+            fsdp_wrap = lambda m: FSDP(m.to(xm.xla_device()), shard_param_on_dim_0=True, compute_dtype = torch.bfloat16)
+            nested_fsdp_wrap = fsdp_wrap
+            grad_ckpt_wrap = checkpoint_module 
+            for i in range(len(model.downsample)):
+                model.downsample[i] = nested_fsdp_wrap(grad_ckpt_wrap(model.downsample[i]))
+
+            for i in range(len(model.upsample)):
+                model.upsample[i] = nested_fsdp_wrap(grad_ckpt_wrap(model.upsample[i]))
+        
+    model = FSDP(model)
+    
     mllog_end(key=constants.INIT_STOP, sync=True)
     mllog_start(key=constants.RUN_START, sync=True)
     mllog_event(key="training_params", value=str(flags), sync=True)
