@@ -103,7 +103,7 @@ class UNet3DTrainer(ABC):
 
                     loss_value = self.train_step(iteration=iteration, images=images, labels=labels)
 
-                    loss_value = reduce_tensor(loss_value).detach().cpu().numpy()
+                    #loss_value = reduce_tensor(loss_value).detach().cpu().numpy()
                     cumulative_loss.append(loss_value)
                     # in debug mode, log the train loss on each iteration
                     if self.flags.debug:
