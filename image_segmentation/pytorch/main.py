@@ -75,18 +75,20 @@ def main(local_rank, flags):
         import torch_xla.core.xla_model as xm
         from pprint import pprint
         from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as FSDP, checkpoint_module
-        fsdp_wrap = lambda m: FSDP(m.to(xm.xla_device()))
+        fsdp_wrap = lambda m: FSDP(m.to(xm.xla_device()), shard_param_on_dim_0 = True)
         # A wrapper over each transformer block with inner FSDP
         nested_fsdp_wrap = fsdp_wrap if flags.use_nested_fsdp else (lambda m: m)
         # A wrapper over each transformer block with gradient checkpointing
         grad_ckpt_wrap = checkpoint_module if flags.use_grad_ckpt else (lambda m: m)
-        pprint(vars(model))
+        
         if flags.use_nested_fsdp or flags.use_grad_ckpt:
             # applying the wrappers above to the FSDP layers
             for i in range(len(model.downsample)):
                 model.downsample[i] = nested_fsdp_wrap(grad_ckpt_wrap(model.downsample[i]))
             for i in range(len(model.upsample)):
                 model.upsample[i] = nested_fsdp_wrap(grad_ckpt_wrap(model.upsample[i]))
+
+        pprint(vars(model))
         # Wrap the base model with an outer FSDP wrapper
         # Also, copy the signature of the original model's forward method -- otherwise
         # Hugging Face datasets drops the columns not appearing in the forward method's argument
