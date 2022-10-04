@@ -93,6 +93,10 @@ def main(local_rank, flags):
                 model.downsample[i] = nested_fsdp_wrap(grad_ckpt_wrap(model.downsample[i]))
             for i in range(len(model.upsample)):
                 model.upsample[i] = nested_fsdp_wrap(grad_ckpt_wrap(model.upsample[i]))
+            
+            model.input_block = nested_fsdp_wrap(grad_ckpt_wrap(model.input_block))
+
+            model.output[i] = nested_fsdp_wrap(grad_ckpt_wrap(model.output))
 
         pprint(vars(model))
         # Wrap the base model with an outer FSDP wrapper
