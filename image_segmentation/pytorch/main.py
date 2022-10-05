@@ -75,11 +75,13 @@ def main(local_rank, flags):
         import torch_xla.core.xla_model as xm
         from pprint import pprint
         from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as FSDP, checkpoint_module
+
         import torch
         if flags.use_bf16:
-            fsdp_wrap = lambda m: FSDP(m.to(xm.xla_device()), shard_param_on_dim_0 = True,  compute_dtype = torch.bfloat16)
+            fsdp_wrap = lambda m: FSDP(m), shard_param_on_dim_0 = True,  compute_dtype = torch.bfloat16)
         else:
-            fsdp_wrap = lambda m: FSDP(m.to(xm.xla_device()), shard_param_on_dim_0 = True)
+            fsdp_wrap = lambda m: FSDP(m), shard_param_on_dim_0 = True)
+
         # A wrapper over each transformer block with inner FSDP
         nested_fsdp_wrap = fsdp_wrap if flags.use_nested_fsdp else (lambda m: m)
         # A wrapper over each transformer block with gradient checkpointing
@@ -114,6 +116,12 @@ def main(local_rank, flags):
             return loss
 
         xm.optimizer_step = patched_optimizer_step
+=======
+    model = model.to(device)
+
+    param_nums = sum(p.numel() for p in model.parameters().values())
+
+    mllog_event(key="per-TPU (sharded) parameter num", value=param_nums)
 
     mllog_end(key=constants.INIT_STOP, sync=True)
     mllog_start(key=constants.RUN_START, sync=True)
