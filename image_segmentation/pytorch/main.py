@@ -75,7 +75,11 @@ def main(local_rank, flags):
         import torch_xla.core.xla_model as xm
         from pprint import pprint
         from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as FSDP, checkpoint_module
-        fsdp_wrap = lambda m: FSDP(m.to(xm.xla_device()), shard_param_on_dim_0 = True)
+        import torch
+        if flags.use_bf16:
+            fsdp_wrap = lambda m: FSDP(m.to(xm.xla_device()), shard_param_on_dim_0 = True,  compute_dtype = torch.bfloat16)
+        else:
+            fsdp_wrap = lambda m: FSDP(m.to(xm.xla_device()), shard_param_on_dim_0 = True)
         # A wrapper over each transformer block with inner FSDP
         nested_fsdp_wrap = fsdp_wrap if flags.use_nested_fsdp else (lambda m: m)
         # A wrapper over each transformer block with gradient checkpointing
