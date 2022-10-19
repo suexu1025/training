@@ -78,9 +78,9 @@ def main(local_rank, flags):
 
         import torch
         if flags.use_bf16:
-            fsdp_wrap = lambda m: FSDP(m,shard_param_on_dim_0 = True,  compute_dtype = torch.bfloat16)
+            fsdp_wrap = lambda m: FSDP(m, shard_param_on_dim_0 = True,  compute_dtype = torch.bfloat16)
         else:
-            fsdp_wrap = lambda m: FSDP(m,shard_param_on_dim_0 = True)
+            fsdp_wrap = lambda m: FSDP(m, shard_param_on_dim_0 = True)
 
         # A wrapper over each transformer block with inner FSDP
         nested_fsdp_wrap = fsdp_wrap if flags.use_nested_fsdp else (lambda m: m)
