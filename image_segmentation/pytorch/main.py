@@ -78,9 +78,9 @@ def main(local_rank, flags):
 
         import torch
         if flags.use_bf16:
-            fsdp_wrap = lambda m: FSDP(m), shard_param_on_dim_0 = True,  compute_dtype = torch.bfloat16)
+            fsdp_wrap = lambda m: FSDP(m),shard_param_on_dim_0 = True,  compute_dtype = torch.bfloat16)
         else:
-            fsdp_wrap = lambda m: FSDP(m), shard_param_on_dim_0 = True)
+            fsdp_wrap = lambda m: FSDP(m),shard_param_on_dim_0 = True)
 
         # A wrapper over each transformer block with inner FSDP
         nested_fsdp_wrap = fsdp_wrap if flags.use_nested_fsdp else (lambda m: m)
@@ -96,7 +96,7 @@ def main(local_rank, flags):
             
             model.input_block = nested_fsdp_wrap(grad_ckpt_wrap(model.input_block))
 
-            model.output[i] = nested_fsdp_wrap(grad_ckpt_wrap(model.output))
+            model.output = nested_fsdp_wrap(grad_ckpt_wrap(model.output))
 
         pprint(vars(model))
         # Wrap the base model with an outer FSDP wrapper
@@ -120,7 +120,7 @@ def main(local_rank, flags):
             return loss
 
         xm.optimizer_step = patched_optimizer_step
-=======
+
     model = model.to(device)
 
     param_nums = sum(p.numel() for p in model.parameters().values())
