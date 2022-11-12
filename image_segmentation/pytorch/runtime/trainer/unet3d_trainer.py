@@ -38,7 +38,7 @@ class UNet3DTrainer(ABC):
         self.loss_fn: torch.nn.Module = loss_fn
 
         # move model and loss_fn to device
-        self.model.to(self.device)
+        #self.model.to(self.device)
         self.loss_fn.to(self.device)
         # setup optimizer
         self.optimizer = UNet3DTrainer.get_optimizer(self.model.parameters(), flags)
@@ -103,7 +103,7 @@ class UNet3DTrainer(ABC):
 
                     loss_value = self.train_step(iteration=iteration, images=images, labels=labels)
 
-                    loss_value = reduce_tensor(loss_value).detach().cpu().numpy()
+                    #loss_value = reduce_tensor(loss_value).detach().cpu().numpy()
                     cumulative_loss.append(loss_value)
                     # in debug mode, log the train loss on each iteration
                     if self.flags.debug:
@@ -122,6 +122,7 @@ class UNet3DTrainer(ABC):
                 metadata={
                     CONSTANTS.EPOCH_NUM: epoch,
                     "current_lr": self.optimizer.param_groups[0]["lr"],
+                    "loss": sum(cumulative_loss) / len(cumulative_loss)
                 },
                 sync=False,
             )

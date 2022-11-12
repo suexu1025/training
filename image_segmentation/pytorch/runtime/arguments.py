@@ -50,3 +50,8 @@ PARSER.add_argument('--cudnn_deterministic', dest='cudnn_deterministic', action=
 # PyTorch/XLA specific args
 PARSER.add_argument('--device', dest='device', type=str, choices=['cuda', 'xla'], default='cuda')
 PARSER.add_argument('--profile_port', dest='profile_port', type=int, default=None)
+
+PARSER.add_argument('--use_fsdp', action='store_true', default=False)
+PARSER.add_argument('--use_nested_fsdp', action='store_true', default=False)
+PARSER.add_argument('--use_grad_ckpt', action='store_true', default=False)
+PARSER.add_argument('--use_bf16', action='store_true', default=True)
