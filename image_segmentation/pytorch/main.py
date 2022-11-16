@@ -180,10 +180,6 @@ def main(local_rank, flags):
 
     model = model.to(device)
 
-    param_nums = sum(p.numel() for p in model.parameters().values())
-
-    mllog_event(key="per-TPU (sharded) parameter num", value=param_nums)
-
     mllog_end(key=constants.INIT_STOP, sync=True)
     mllog_start(key=constants.RUN_START, sync=True)
     mllog_event(key="training_params", value=str(flags), sync=True)
