@@ -11,6 +11,9 @@ from runtime.distributed.distributed_utils import (
     reduce_tensor,
 )
 
+from runtime.logging import (
+    mllog_event
+)
 
 def evaluate(flags, model, loader, loss_fn, score_fn, device, epoch=0, is_distributed=False):
     rank = get_rank()
@@ -36,32 +39,42 @@ def evaluate(flags, model, loader, loss_fn, score_fn, device, epoch=0, is_distri
             image, label = image.to(device), label.to(device)
             if image.numel() == 0:
                 continue
-            with autocast(enabled=flags.amp):
-                output, label = sliding_window_inference(
-                    inputs=image,
-                    labels=label,
-                    roi_shape=flags.val_input_shape,
-                    model=model,
-                    overlap=flags.overlap,
-                    mode="gaussian",
-                    padding_val=-2.2
-                )
-                eval_loss_value = loss_fn(output, label)
-                scores.append(score_fn(output, label))
+            #with autocast(enabled=flags.amp):
+            output, label = sliding_window_inference(
+                inputs=image,
+                labels=label,
+                roi_shape=flags.val_input_shape,
+                model=model,
+                overlap=flags.overlap,
+                mode="gaussian",
+                padding_val=-2.2
+            )
+            eval_loss_value = loss_fn(output, label)
+            scores.append(score_fn(output, label))
             eval_loss.append(eval_loss_value)
             del output
             del label
+            
+            mllog_event(
+                    key="eval_step",
+                    value=eval_loss_value,
+                    metadata={
+                        "iteration_num": i,
+                    },
+                    sync=False,
+            )
 
-    scores = reduce_tensor(torch.mean(torch.stack(scores, dim=0), dim=0), world_size)
-    eval_loss = reduce_tensor(torch.mean(torch.stack(eval_loss, dim=0), dim=0), world_size)
+    scores = reduce_tensor(torch.mean(torch.stack(scores, dim=0), dim=0))
+    eval_loss = reduce_tensor(torch.mean(torch.stack(eval_loss, dim=0), dim=0))
     # scores = torch.mean(torch.stack(scores, dim=0), dim=0)
     # eval_loss = torch.mean(torch.stack(eval_loss, dim=0), dim=0)
 
     scores, eval_loss = scores.cpu().numpy(), float(eval_loss.cpu().numpy())
     eval_metrics = {"epoch": epoch,
+                    "L1 dice": scores[-3],
                     "L1 dice": scores[-2],
                     "L2 dice": scores[-1],
-                    "mean_dice": (scores[-1] + scores[-2]) / 2,
+                    "mean_dice": (scores[-1] + scores[-2] + scores[-3]) / 3,
                     "eval_loss": eval_loss}
 
     return eval_metrics
@@ -71,8 +84,8 @@ def pad_input(volume, roi_shape, strides, padding_mode, padding_val, dim=3):
     """
     mode: constant, reflect, replicate, circular
     """
-    bounds = [(strides[i] - volume.shape[2:][i] % strides[i]) % strides[i] for i in range(dim)]
-    bounds = [bounds[i] if (volume.shape[2:][i] + bounds[i]) >= roi_shape[i] else bounds[i] + strides[i]
+    bounds = [(strides[i] - volume.shape[-dim:][i] % strides[i]) % strides[i] for i in range(dim)]
+    bounds = [bounds[i] if (volume.shape[-dim:][i] + bounds[i]) >= roi_shape[i] else bounds[i] + strides[i]
               for i in range(dim)]
     paddings = [bounds[2] // 2, bounds[2] - bounds[2] // 2,
                 bounds[1] // 2, bounds[1] - bounds[1] // 2,
@@ -95,6 +108,8 @@ def gaussian_kernel(n, std):
 
 def sliding_window_inference(inputs, labels, roi_shape, model, overlap=0.5, mode="gaussian",
                              padding_mode="constant", padding_val=0.0, **kwargs):
+    labels = labels.type(torch.int8)
+    inputs = inputs.type(torch.float16)
     image_shape = list(inputs.shape[2:])
     dim = len(image_shape)
     strides = [int(roi_shape[i] * (1 - overlap)) for i in range(dim)]
@@ -114,7 +129,7 @@ def sliding_window_inference(inputs, labels, roi_shape, model, overlap=0.5, mode
 
     padded_shape = inputs.shape[2:]
     size = [(inputs.shape[2:][i] - roi_shape[i]) // strides[i] + 1 for i in range(dim)]
-    result = torch.zeros(size=(1, 3, *padded_shape), dtype=inputs.dtype, device=inputs.device)
+    result = torch.zeros(size=(1, 4, *padded_shape), dtype=torch.float, device=inputs.device)
     norm_map = torch.zeros_like(result)
     if mode == "constant":
         norm_patch = torch.ones(size=roi_shape, dtype=norm_map.dtype, device=norm_map.device)

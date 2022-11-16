@@ -52,7 +52,7 @@ def get_data_loaders(
     val_loader = DataLoader(
         val_dataset,
         batch_size=1,
-        shuffle=not flags.benchmark and val_sampler is None,
+        shuffle=flags.use_brats and not flags.benchmark and val_sampler is None,
         sampler=val_sampler,
         num_workers=flags.num_workers,
         pin_memory=False,

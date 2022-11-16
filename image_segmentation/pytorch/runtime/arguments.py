@@ -55,3 +55,7 @@ PARSER.add_argument('--use_fsdp', action='store_true', default=False)
 PARSER.add_argument('--use_nested_fsdp', action='store_true', default=False)
 PARSER.add_argument('--use_grad_ckpt', action='store_true', default=False)
 PARSER.add_argument('--use_bf16', action='store_true', default=True)
+
+PARSER.add_argument('--use_brats', action='store_true', default=False)
+PARSER.add_argument('--fold_idx',  dest='fold_idx', type=int, default=0)
+PARSER.add_argument('--deep_supervision', action='store_true', default=False)

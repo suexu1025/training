@@ -11,7 +11,6 @@ from runtime.logging import CONSTANTS, mllog_end, mllog_event, mllog_start
 from torch.nn import Parameter
 from torch.optim import SGD, Adam
 
-
 class UNet3DTrainer(ABC):
     """Base class for training UNet3D in PyTorch"""
 
@@ -103,7 +102,7 @@ class UNet3DTrainer(ABC):
 
                     loss_value = self.train_step(iteration=iteration, images=images, labels=labels)
 
-                    #loss_value = reduce_tensor(loss_value).detach().cpu().numpy()
+                    loss_value = reduce_tensor(loss_value)
                     cumulative_loss.append(loss_value)
                     # in debug mode, log the train loss on each iteration
                     if self.flags.debug:
@@ -116,7 +115,6 @@ class UNet3DTrainer(ABC):
                             },
                             sync=False,
                         )
-
             mllog_end(
                 key=CONSTANTS.EPOCH_STOP,
                 metadata={
@@ -126,6 +124,17 @@ class UNet3DTrainer(ABC):
                 },
                 sync=False,
             )
+            try:
+                mllog_end(
+                    key=CONSTANTS.EPOCH_STOP,
+                    metadata={
+                        CONSTANTS.EPOCH_NUM: epoch,
+                        "loss": sum(cumulative_loss) / len(cumulative_loss)
+                    },
+                    sync=False,
+                )
+            except:
+                pass
 
             # startup time is defined as the time between the program
             # starting and the 1st epoch ending

@@ -34,9 +34,13 @@ def split_eval_data(x_val, y_val, num_shards, shard_id):
     y = [a.tolist() for a in np.array_split(y_val, num_shards)]
     return x[shard_id], y[shard_id]
 
+def get_data_split(path: str, num_shards: int, shard_id: int, use_brats: bool, foldidx: int):
+    if use_brats:
+        listfile = "brats_evaluation_cases_{}.txt".format(foldidx)
+    else:
+        listfile = "evaluation_cases.txt"
 
-def get_data_split(path: str, num_shards: int, shard_id: int):
-    with open("evaluation_cases.txt", "r") as f:
+    with open(listfile, "r") as f:
         val_cases_list = f.readlines()
     val_cases_list = [case.rstrip("\n") for case in val_cases_list]
     imgs = load_data(path, "*_x.npy")
@@ -53,9 +57,7 @@ def get_data_split(path: str, num_shards: int, shard_id: int):
     mllog_event(key="train_samples", value=len(imgs_train), sync=False)
     mllog_event(key="eval_samples", value=len(imgs_val), sync=False)
     imgs_val, lbls_val = split_eval_data(imgs_val, lbls_val, num_shards, shard_id)
-    return imgs_train, imgs_val, lbls_train, lbls_val
-
-
+    return imgs_train, imgs_val, lbls_train, lbls_val    
 class SyntheticDataset(Dataset):
     def __init__(
         self,
@@ -112,7 +114,7 @@ def get_data_loaders(flags: Namespace, num_shards: int, global_rank: int, device
 
     elif flags.loader == "pytorch":
         x_train, x_val, y_train, y_val = get_data_split(
-            flags.data_dir, num_shards, shard_id=global_rank
+            flags.data_dir, num_shards, shard_id=global_rank, use_brats=flags.use_brats, foldidx = flags.fold_idx
         )
         train_data_kwargs = {
             "patch_size": flags.input_shape,
