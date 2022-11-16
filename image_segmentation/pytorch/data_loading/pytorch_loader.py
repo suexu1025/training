@@ -3,7 +3,7 @@ import numpy as np
 import scipy.ndimage
 from torch.utils.data import Dataset
 from torchvision import transforms
-
+import tensorflow.io as io
 
 def get_train_transforms():
     rand_flip = RandFlip()
@@ -146,11 +146,11 @@ class PytTrain(Dataset):
         return len(self.images)
 
     def __getitem__(self, idx):
-        data = {"image": np.load(self.images[idx]), "label": np.load(self.labels[idx])}
+        with io.gfile.GFile(self.images[idx], 'rb') as f, io.gfile.GFile(self.labels[idx], 'rb') as g:
+            data = {"image": np.load(f), "label": np.load(g)}
         data = self.rand_crop(data)
         data = self.train_transforms(data)
         return data["image"], data["label"]
-
 
 class PytVal(Dataset):
     def __init__(self, images, labels):
@@ -160,10 +160,6 @@ class PytVal(Dataset):
         return len(self.images)
 
     def __getitem__(self, idx):
-        return np.load(self.images[idx]), np.load(self.labels[idx])
-
-
-
-
-
+        with io.gfile.GFile(self.images[idx], 'rb') as f, io.gfile.GFile(self.labels[idx], 'rb') as g:
+            return np.load(f), np.load(g)
 

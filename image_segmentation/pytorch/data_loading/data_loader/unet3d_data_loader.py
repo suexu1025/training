@@ -9,16 +9,16 @@ import torch
 from data_loading.pytorch_loader import PytTrain, PytVal
 from runtime.logging import mllog_event
 from torch.utils.data import Dataset
-
+import tensorflow.io as io
 
 def list_files_with_pattern(path, files_pattern):
-    data = sorted(glob.glob(os.path.join(path, files_pattern)))
+    data = sorted(io.gfile.glob(os.path.join(path, files_pattern)))
     assert len(data) > 0, f"Found no data at {path}"
     return data
 
 
 def load_data(path, files_pattern):
-    data = sorted(glob.glob(os.path.join(path, files_pattern)))
+    data = sorted(io.gfile.glob((os.path.join(path, files_pattern))))
     assert len(data) > 0, f"Found no data at {path}"
     return data
 
@@ -57,7 +57,7 @@ def get_data_split(path: str, num_shards: int, shard_id: int, use_brats: bool, f
     mllog_event(key="train_samples", value=len(imgs_train), sync=False)
     mllog_event(key="eval_samples", value=len(imgs_val), sync=False)
     imgs_val, lbls_val = split_eval_data(imgs_val, lbls_val, num_shards, shard_id)
-    return imgs_train, imgs_val, lbls_train, lbls_val    
+    return imgs_train, imgs_val, lbls_train, lbls_val
 class SyntheticDataset(Dataset):
     def __init__(
         self,
