@@ -47,7 +47,7 @@ def evaluate(flags, model, loader, loss_fn, score_fn, device, epoch=0, is_distri
                 model=model,
                 overlap=flags.overlap,
                 mode="gaussian",
-                padding_val=-2.2
+                padding_val=0 if flags.use_brats else -2.2
             )
             eval_loss_value = loss_fn(output, label)
             scores.append(score_fn(output, label))
