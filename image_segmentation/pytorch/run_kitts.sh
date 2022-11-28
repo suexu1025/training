@@ -35,6 +35,7 @@ then
 # mllog_event(key=constants.CACHE_CLEAR, value=True)"
 
   PJRT_DEVICE=TPU python3 main.py --data_dir ${DATASET_DIR} \
+    --log_dir "gs://us-central1-qinwen-composer-beaf79dc-bucket/tf_logs/" \
     --epochs ${MAX_EPOCHS} \
     --evaluate_every ${EVALUATE_EVERY} \
     --start_eval_at ${START_EVAL_AT} \
