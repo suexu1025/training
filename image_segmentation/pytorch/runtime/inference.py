@@ -70,13 +70,19 @@ def evaluate(flags, model, loader, loss_fn, score_fn, device, epoch=0, is_distri
     # eval_loss = torch.mean(torch.stack(eval_loss, dim=0), dim=0)
 
     scores, eval_loss = scores.cpu().numpy(), float(eval_loss.cpu().numpy())
-    eval_metrics = {"epoch": epoch,
-                    "L1 dice": scores[-3],
-                    "L1 dice": scores[-2],
-                    "L2 dice": scores[-1],
-                    "mean_dice": (scores[-1] + scores[-2] + scores[-3]) / 3,
-                    "eval_loss": eval_loss}
-
+    if flags.use_brats:
+        eval_metrics = {"epoch": epoch,
+                        "L1 dice": scores[-3],
+                        "L2 dice": scores[-2],
+                        "L3 dice": scores[-1],
+                        "mean_dice": (scores[-1] + scores[-2] + scores[-3]) / 3,
+                        "eval_loss": eval_loss}
+    else:
+          eval_metrics = {"epoch": epoch,
+                        "L1 dice": scores[-2],
+                        "L2 dice": scores[-1],
+                        "mean_dice": (scores[-1] + scores[-2]) / 2,
+                        "eval_loss": eval_loss}      
     return eval_metrics
 
 
@@ -129,7 +135,7 @@ def sliding_window_inference(inputs, labels, roi_shape, model, overlap=0.5, mode
 
     padded_shape = inputs.shape[2:]
     size = [(inputs.shape[2:][i] - roi_shape[i]) // strides[i] + 1 for i in range(dim)]
-    result = torch.zeros(size=(1, 4, *padded_shape), dtype=torch.float, device=inputs.device)
+    result = torch.zeros(size=(1, inputs.shape[-1], *padded_shape), dtype=torch.float, device=inputs.device)
     norm_map = torch.zeros_like(result)
     if mode == "constant":
         norm_patch = torch.ones(size=roi_shape, dtype=norm_map.dtype, device=norm_map.device)
