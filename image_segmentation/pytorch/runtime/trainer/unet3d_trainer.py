@@ -51,7 +51,7 @@ class UNet3DTrainer(ABC):
             )
 
         dataset_name = "kitts/" if not flags.use_brats else ""
-        self.summary_dir = self.flags.log_dir + dataset_name + datetime.now().strftime("%Y%m%d-%H%M%S")
+        self.summary_dir = flags.tb_dir + dataset_name + datetime.now().strftime("%Y%m%d-%H%M%S")
         self.summary_interval = 100
         self.summary_writer = tf.summary.create_file_writer(
             self.summary_dir) if self.summary_interval else None

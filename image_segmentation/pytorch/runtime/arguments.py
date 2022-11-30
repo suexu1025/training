@@ -5,6 +5,7 @@ PARSER = argparse.ArgumentParser(description="UNet-3D")
 
 PARSER.add_argument('--data_dir', dest='data_dir', required=True)
 PARSER.add_argument('--log_dir', dest='log_dir', type=str, default="/tmp")
+PARSER.add_argument('--tb_dir', dest='tb_dir', type=str, default="/tmp/tb")
 PARSER.add_argument('--save_ckpt_path', dest='save_ckpt_path', type=str, default="")
 PARSER.add_argument('--load_ckpt_path', dest='load_ckpt_path', type=str, default="")
 PARSER.add_argument('--loader', dest='loader', default="pytorch", type=str)

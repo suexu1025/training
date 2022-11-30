@@ -47,7 +47,8 @@ def evaluate(flags, model, loader, loss_fn, score_fn, device, epoch=0, is_distri
                 model=model,
                 overlap=flags.overlap,
                 mode="gaussian",
-                padding_val=0 if flags.use_brats else -2.2
+                padding_val=0 if flags.use_brats else -2.2,
+                out_dim=4 if flags.use_brats else 3
             )
             eval_loss_value = loss_fn(output, label)
             scores.append(score_fn(output, label))
@@ -113,7 +114,7 @@ def gaussian_kernel(n, std):
 
 
 def sliding_window_inference(inputs, labels, roi_shape, model, overlap=0.5, mode="gaussian",
-                             padding_mode="constant", padding_val=0.0, **kwargs):
+                             padding_mode="constant", padding_val=0.0, out_dim=3):
     labels = labels.type(torch.int8)
     inputs = inputs.type(torch.float16)
     image_shape = list(inputs.shape[2:])
@@ -135,7 +136,7 @@ def sliding_window_inference(inputs, labels, roi_shape, model, overlap=0.5, mode
 
     padded_shape = inputs.shape[2:]
     size = [(inputs.shape[2:][i] - roi_shape[i]) // strides[i] + 1 for i in range(dim)]
-    result = torch.zeros(size=(1, inputs.shape[-1], *padded_shape), dtype=torch.float, device=inputs.device)
+    result = torch.zeros(size=(1, out_dim, *padded_shape), dtype=torch.float, device=inputs.device)
     norm_map = torch.zeros_like(result)
     if mode == "constant":
         norm_patch = torch.ones(size=roi_shape, dtype=norm_map.dtype, device=norm_map.device)
