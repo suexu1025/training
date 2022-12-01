@@ -51,6 +51,7 @@ then
     --use_brats \
     --fold_idx ${FOLD} \
     --input_shape 128 128 128 \
+    --profile_port 9229 \
     --device xla 2>&1 | tee -a ~/result.txt
 
 	# end timing
