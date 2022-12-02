@@ -3,7 +3,8 @@ import numpy as np
 import scipy.ndimage
 from torch.utils.data import Dataset
 from torchvision import transforms
-import tensorflow.io as io
+import gcsfs
+fs = gcsfs.GCSFileSystem()
 
 def get_train_transforms():
     rand_flip = RandFlip()
@@ -146,7 +147,7 @@ class PytTrain(Dataset):
         return len(self.images)
 
     def __getitem__(self, idx):
-        with io.gfile.GFile(self.images[idx], 'rb') as f, io.gfile.GFile(self.labels[idx], 'rb') as g:
+        with fs.open(self.images[idx], 'rb') as f, fs.open(self.labels[idx], 'rb') as g:
             data = {"image": np.load(f), "label": np.load(g)}
         data = self.rand_crop(data)
         data = self.train_transforms(data)
@@ -160,6 +161,6 @@ class PytVal(Dataset):
         return len(self.images)
 
     def __getitem__(self, idx):
-        with io.gfile.GFile(self.images[idx], 'rb') as f, io.gfile.GFile(self.labels[idx], 'rb') as g:
+        with fs.open(self.images[idx], 'rb') as f, fs.open(self.labels[idx], 'rb') as g:
             return np.load(f), np.load(g)
 
