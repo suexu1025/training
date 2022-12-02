@@ -10,16 +10,17 @@ from data_loading.pytorch_loader import PytTrain, PytVal
 from runtime.logging import mllog_event
 from torch.utils.data import Dataset
 import glob
-import torch_xla.utils.gcsfs as gcs
+import gcsfs
+fs = gcsfs.GCSFileSystem()
 
 def list_files_with_pattern(path, files_pattern):
-    data = sorted(gcs.list(os.path.join(path, files_pattern)))
+    data = sorted(fs.glob(os.path.join(path, files_pattern)))
     assert len(data) > 0, f"Found no data at {path}"
     return data
 
 
 def load_data(path, files_pattern):
-    data = sorted(gcs.list((os.path.join(path, files_pattern))))
+    data = sorted(fs.glob((os.path.join(path, files_pattern))))
     assert len(data) > 0, f"Found no data at {path}"
     return data
 
