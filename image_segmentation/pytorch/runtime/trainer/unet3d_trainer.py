@@ -12,7 +12,7 @@ from torch.nn import Parameter
 from torch.optim import SGD, Adam
 
 from datetime import datetime
-import tensorflow as tf
+import torch_xla.test.test_utils as test_utils
 class UNet3DTrainer(ABC):
     """Base class for training UNet3D in PyTorch"""
 
@@ -51,10 +51,11 @@ class UNet3DTrainer(ABC):
             )
 
         dataset_name = "kitts/" if not flags.use_brats else ""
-        self.summary_dir = flags.tb_dir + dataset_name + datetime.now().strftime("%Y%m%d-%H%M%S")
-        self.summary_interval = 100
-        self.summary_writer = tf.summary.create_file_writer(
-            self.summary_dir) if self.summary_interval else None
+        if flags.tb_dir is not "":
+            self.summary_dir = flags.tb_dir + dataset_name + datetime.now().strftime("%Y%m%d-%H%M%S")
+            self.summary_interval = 100
+            self.summary_writer = test_utils.get_summary_writer(
+                self.summary_dir) if self.summary_interval else None
         
         mllog_event(   key="tb_summery_dir",
                         value=self.summary_dir,
@@ -64,10 +65,11 @@ class UNet3DTrainer(ABC):
                         },
                         sync=False,
                     )
-        with self.summary_writer.as_default():
-            with tf.name_scope("training params"):
-                tf.summary.text('flags', data=str(flags), step = 0)
-                tf.summary.text('tb dir', data=str(self.summary_dir), step = 0)
+        if self.summary_writer is not None:
+            with self.summary_writer.as_default():
+                with test_utils.name_scope("training params"):
+                    test_utils.summary.text('flags', data=str(flags), step = 0)
+                    test_utils.summary.text('tb dir', data=str(self.summary_dir), step = 0)
     def train(self):
         """Trains the UNet3D model"""
         is_successful = False
@@ -124,8 +126,9 @@ class UNet3DTrainer(ABC):
 
                     loss_value = reduce_tensor(loss_value)
                     cumulative_loss.append(loss_value)
-                    with self.summary_writer.as_default():
-                        tf.summary.scalar('loss', data=loss_value.detach().cpu().numpy(), step=epoch * 10000 // 64 + iteration)
+                    if self.summary_writer is not None:
+                        with self.summary_writer.as_default():
+                            tf.summary.scalar('loss', data=loss_value.detach().cpu().numpy(), step=epoch * 10000 // 64 + iteration)
                     # in debug mode, log the train loss on each iteration
                     if self.flags.debug:
                         mllog_event(
@@ -137,8 +140,9 @@ class UNet3DTrainer(ABC):
                             },
                             sync=False,
                         )
-            with self.summary_writer.as_default():
-                tf.summary.scalar('learning rate', data=self.optimizer.param_groups[0]["lr"], step=epoch)
+            if self.summary_writer is not None:
+                with self.summary_writer.as_default():
+                    tf.summary.scalar('learning rate', data=self.optimizer.param_groups[0]["lr"], step=epoch)
             mllog_end(
                 key=CONSTANTS.EPOCH_STOP,
                 metadata={
@@ -199,10 +203,10 @@ class UNet3DTrainer(ABC):
                     metadata={CONSTANTS.EPOCH_NUM: epoch},
                     sync=False,
                 )
-
-                with self.summary_writer.as_default():
-                    tf.summary.scalar('eval_loss', data=eval_metrics["eval_loss"], step=epoch)
-                    tf.summary.scalar('mean_dice', data=eval_metrics["mean_dice"], step=epoch)
+                if self.summary_writer is not None:
+                    with self.summary_writer.as_default():
+                        tf.summary.scalar('eval_loss', data=eval_metrics["eval_loss"], step=epoch)
+                        tf.summary.scalar('mean_dice', data=eval_metrics["mean_dice"], step=epoch)
 
                 mllog_end(
                     key=CONSTANTS.EVAL_STOP,
