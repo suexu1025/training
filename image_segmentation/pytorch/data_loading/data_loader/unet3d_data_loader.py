@@ -18,7 +18,7 @@ def list_files_with_pattern(path, files_pattern):
 
 
 def load_data(path, files_pattern):
-    data = sorted(glob.gfile.glob((os.path.join(path, files_pattern))))
+    data = sorted(glob.glob((os.path.join(path, files_pattern))))
     assert len(data) > 0, f"Found no data at {path}"
     return data
 
