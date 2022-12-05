@@ -61,6 +61,7 @@ class XLATrainer(UNet3DTrainer):
 
             test_utils.write_to_summary(
             self.summary_writer, 
+            global_step = 0,
             dict_to_write = {
                 'optimizer': str(flags.optimizer),
                 'tb dir': self.summary_dir})
