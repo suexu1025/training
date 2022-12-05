@@ -62,7 +62,7 @@ class XLATrainer(UNet3DTrainer):
             test_utils.test_write_to_summary(
             self.summary_writer, 
             dict_to_write = {
-                'flags': str(flags),
+                'optimizer': str(flags.optimizer),
                 'tb dir': self.summary_dir})
             xm.master_print('tb_summery_dir is {}'.format(self.summary_dir))
 
