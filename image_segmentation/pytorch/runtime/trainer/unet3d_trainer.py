@@ -11,7 +11,6 @@ from runtime.logging import CONSTANTS, mllog_end, mllog_event, mllog_start
 from torch.nn import Parameter
 from torch.optim import SGD, Adam
 
-from datetime import datetime
 import torch_xla.test.test_utils as test_utils
 class UNet3DTrainer(ABC):
     """Base class for training UNet3D in PyTorch"""

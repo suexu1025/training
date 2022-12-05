@@ -9,7 +9,8 @@ import torch_xla.core.xla_model as xm
 import torch_xla.debug.profiler as xp
 import torch_xla.distributed.parallel_loader as pl
 from runtime.trainer.unet3d_trainer import UNet3DTrainer
-
+from datetime import datetime
+import torch_xla.test.test_utils as test_utils
 
 class XLATrainer(UNet3DTrainer):
     """Trains UNet3D in PyTorch/XLA"""
@@ -50,7 +51,7 @@ class XLATrainer(UNet3DTrainer):
         if self.flags.profile_port:
             self.profile_server = xp.start_server(self.flags.profile_port)
         
-        if flags.tb_dir is not "":
+        if flags.tb_dir !="":
             dataset_name = "kitts/" if not flags.use_brats else ""
             self.summary_dir = flags.tb_dir + dataset_name + datetime.now().strftime("%Y%m%d-%H%M%S")
             self.summary_interval = 100
@@ -68,7 +69,7 @@ class XLATrainer(UNet3DTrainer):
     def __del__(self):
         if self.summary_writer:
             test_utils.close_summary_writer(self.summary_writer)
-            
+
     def train_step(
         self, iteration: int, images: torch.Tensor, labels: torch.Tensor
     ) -> torch.Tensor:
