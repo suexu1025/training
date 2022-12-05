@@ -49,7 +49,26 @@ class XLATrainer(UNet3DTrainer):
         # Start and persist the profiler server
         if self.flags.profile_port:
             self.profile_server = xp.start_server(self.flags.profile_port)
+        
+        if flags.tb_dir is not "":
+            dataset_name = "kitts/" if not flags.use_brats else ""
+            self.summary_dir = flags.tb_dir + dataset_name + datetime.now().strftime("%Y%m%d-%H%M%S")
+            self.summary_interval = 100
+            if xm.is_master_ordinal():
+                self.summary_writer = test_utils.get_summary_writer(
+                    self.summary_dir) if self.summary_interval else None
 
+            test_utils.test_write_to_summary(
+            self.summary_writer, 
+            dict_to_write = {
+                'flags': str(flags),
+                'tb dir': self.summary_dir})
+            xm.master_print('tb_summery_dir is {}'.format(self.summary_dir))
+
+    def __del__(self):
+        if self.summary_writer:
+            test_utils.close_summary_writer(self.summary_writer)
+            
     def train_step(
         self, iteration: int, images: torch.Tensor, labels: torch.Tensor
     ) -> torch.Tensor:

@@ -50,33 +50,8 @@ class UNet3DTrainer(ABC):
                 gamma=flags.lr_decay_factor,
             )
 
-        dataset_name = "kitts/" if not flags.use_brats else ""
-        if flags.tb_dir is not "":
-            self.summary_dir = flags.tb_dir + dataset_name + datetime.now().strftime("%Y%m%d-%H%M%S")
-            self.summary_interval = 100
-            self.summary_writer = test_utils.get_summary_writer(
-                self.summary_dir) if self.summary_interval else None
-        
-            mllog_event(   key="tb_summery_dir",
-                            value=self.summary_dir,
-                            metadata={
-                                CONSTANTS.EPOCH_NUM: 0,
-                                "iteration_num": 0,
-                            },
-                            sync=False,
-                        )
+        self.summary_writer = None
 
-            with self.summary_writer.as_default():
-                test_utils.test_write_to_summary(
-                self.summary_writer, 
-                dict_to_write = {
-                    'flags': str(flags),
-                    'tb dir': self.summary_dir})
-        else:
-            self.summary_writer = None
-    def __del__(self):
-        if self.summary_writer:
-            test_utils.close_summary_writer(self.summary_writer)
     def train(self):
         """Trains the UNet3D model"""
         is_successful = False
@@ -136,7 +111,7 @@ class UNet3DTrainer(ABC):
                     if self.summary_writer:
                         test_utils.write_to_summary(
                             self.summary_writer,
-                            global_step=epoch * 10000 // 64 + iteration
+                            global_step=epoch * 10000 // 64 + iteration,
                             dict_to_write={
                                 'loss': loss_value.detach().cpu().numpy()
                             })
@@ -154,7 +129,7 @@ class UNet3DTrainer(ABC):
             if self.summary_writer:
                 test_utils.write_to_summary(
                     self.summary_writer,
-                    global_step = epoch
+                    global_step = epoch,
                     dict_to_write={'learning rate':self.optimizer.param_groups[0]["lr"]})
             mllog_end(
                 key=CONSTANTS.EPOCH_STOP,
@@ -219,7 +194,7 @@ class UNet3DTrainer(ABC):
                 if self.summary_writer:
                     test_utils.write_to_summary(
                         self.summary_writer,
-                        global_step = epoch
+                        global_step = epoch,
                         dict_to_write={
                             'eval_loss':eval_metrics["eval_loss"],
                             'mean_dice':eval_metrics["mean_dice"],
