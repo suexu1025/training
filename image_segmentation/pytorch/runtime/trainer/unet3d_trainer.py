@@ -65,11 +65,13 @@ class UNet3DTrainer(ABC):
                             },
                             sync=False,
                         )
-                        
+
             with self.summary_writer.as_default():
                 with test_utils.name_scope("training params"):
                     test_utils.summary.text('flags', data=str(flags), step = 0)
                     test_utils.summary.text('tb dir', data=str(self.summary_dir), step = 0)
+        else:
+            self.summary_dir = None
     def train(self):
         """Trains the UNet3D model"""
         is_successful = False
