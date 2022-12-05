@@ -59,7 +59,7 @@ class XLATrainer(UNet3DTrainer):
                 self.summary_writer = test_utils.get_summary_writer(
                     self.summary_dir) if self.summary_interval else None
 
-            test_utils.test_write_to_summary(
+            test_utils.write_to_summary(
             self.summary_writer, 
             dict_to_write = {
                 'optimizer': str(flags.optimizer),
