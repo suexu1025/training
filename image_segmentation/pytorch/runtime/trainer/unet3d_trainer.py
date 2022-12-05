@@ -67,11 +67,16 @@ class UNet3DTrainer(ABC):
                         )
 
             with self.summary_writer.as_default():
-                with test_utils.name_scope("training params"):
-                    test_utils.summary.text('flags', data=str(flags), step = 0)
-                    test_utils.summary.text('tb dir', data=str(self.summary_dir), step = 0)
+                test_utils.test_write_to_summary(
+                self.summary_writer, 
+                dict_to_write = {
+                    'flags': str(flags),
+                    'tb dir': self.summary_dir})
         else:
-            self.summary_dir = None
+            self.summary_writer = None
+    def __del__(self):
+        if self.summary_writer:
+            test_utils.close_summary_writer(self.summary_writer)
     def train(self):
         """Trains the UNet3D model"""
         is_successful = False
@@ -128,9 +133,13 @@ class UNet3DTrainer(ABC):
 
                     loss_value = reduce_tensor(loss_value)
                     cumulative_loss.append(loss_value)
-                    if self.summary_writer is not None:
-                        with self.summary_writer.as_default():
-                            tf.summary.scalar('loss', data=loss_value.detach().cpu().numpy(), step=epoch * 10000 // 64 + iteration)
+                    if self.summary_writer:
+                        test_utils.write_to_summary(
+                            self.summary_writer,
+                            global_step=epoch * 10000 // 64 + iteration
+                            dict_to_write={
+                                'loss': loss_value.detach().cpu().numpy()
+                            })
                     # in debug mode, log the train loss on each iteration
                     if self.flags.debug:
                         mllog_event(
@@ -142,9 +151,11 @@ class UNet3DTrainer(ABC):
                             },
                             sync=False,
                         )
-            if self.summary_writer is not None:
-                with self.summary_writer.as_default():
-                    tf.summary.scalar('learning rate', data=self.optimizer.param_groups[0]["lr"], step=epoch)
+            if self.summary_writer:
+                test_utils.write_to_summary(
+                    self.summary_writer,
+                    global_step = epoch
+                    dict_to_write={'learning rate':self.optimizer.param_groups[0]["lr"]})
             mllog_end(
                 key=CONSTANTS.EPOCH_STOP,
                 metadata={
@@ -205,10 +216,14 @@ class UNet3DTrainer(ABC):
                     metadata={CONSTANTS.EPOCH_NUM: epoch},
                     sync=False,
                 )
-                if self.summary_writer is not None:
-                    with self.summary_writer.as_default():
-                        tf.summary.scalar('eval_loss', data=eval_metrics["eval_loss"], step=epoch)
-                        tf.summary.scalar('mean_dice', data=eval_metrics["mean_dice"], step=epoch)
+                if self.summary_writer:
+                    test_utils.write_to_summary(
+                        self.summary_writer,
+                        global_step = epoch
+                        dict_to_write={
+                            'eval_loss':eval_metrics["eval_loss"],
+                            'mean_dice':eval_metrics["mean_dice"],
+                        })
 
                 mllog_end(
                     key=CONSTANTS.EVAL_STOP,
