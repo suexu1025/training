@@ -57,15 +57,15 @@ class UNet3DTrainer(ABC):
             self.summary_writer = test_utils.get_summary_writer(
                 self.summary_dir) if self.summary_interval else None
         
-        mllog_event(   key="tb_summery_dir",
-                        value=self.summary_dir,
-                        metadata={
-                            CONSTANTS.EPOCH_NUM: 0,
-                            "iteration_num": 0,
-                        },
-                        sync=False,
-                    )
-        if self.summary_writer is not None:
+            mllog_event(   key="tb_summery_dir",
+                            value=self.summary_dir,
+                            metadata={
+                                CONSTANTS.EPOCH_NUM: 0,
+                                "iteration_num": 0,
+                            },
+                            sync=False,
+                        )
+                        
             with self.summary_writer.as_default():
                 with test_utils.name_scope("training params"):
                     test_utils.summary.text('flags', data=str(flags), step = 0)
