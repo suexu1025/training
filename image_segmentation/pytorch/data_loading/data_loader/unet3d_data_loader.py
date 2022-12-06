@@ -109,8 +109,8 @@ def get_data_loaders(flags: Namespace, num_shards: int, global_rank: int, device
     :rtype: Union[Tuple[pl.MpDeviceLoader, pl.MpDeviceLoader], Tuple[DataLoader, DataLoader]]
     """
     if flags.loader == "synthetic":
-        train_dataset = SyntheticDataset(scalar=True, shape=flags.input_shape, layout=flags.layout)
-        val_dataset = SyntheticDataset(
+        train_dataset = SyntheticDataset(channels_in=4, channels_out=4, scalar=True, shape=flags.input_shape, layout=flags.layout)
+        val_dataset = SyntheticDataset(hannels_in=4, channels_out=4, 
             scalar=True, shape=flags.val_input_shape, layout=flags.layout
         )
 
