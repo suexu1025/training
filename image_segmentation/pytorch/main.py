@@ -53,7 +53,7 @@ def main(local_rank, flags):
     world_size = get_world_size()
     local_rank = get_rank()
     worker_seeds, shuffling_seeds = setup_seeds(
-        master_seed= flags.seed if flags.seed is not -1 else None, epochs=flags.epochs, device=device
+        master_seed= flags.seed if flags.seed != -1 else None, epochs=flags.epochs, device=device
     )
     worker_seed = worker_seeds[local_rank]
     seed_everything(worker_seed)
