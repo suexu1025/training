@@ -244,7 +244,7 @@ if __name__ == "__main__":
     # record the program start time, which is later used for
     # calculating the training start-up time
     flags.program_start_time = time.time()
-    if flags.seed = -1:
+    if flags.seed == -1:
         flags.seed = np.random.randint(0, 2147483647)
     if flags.device == "xla":
         xmp.spawn(xla_main, args=(flags,))
