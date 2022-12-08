@@ -34,7 +34,7 @@ then
 # from runtime.logging import mllog_event
 # mllog_event(key=constants.CACHE_CLEAR, value=True)"
 
-  PJRT_DEVICE=TPU python3 main.py --data_dir ${DATASET_DIR} \
+  PJRT_DEVICE=TPU numactl --cpunodebind=0 python3 main.py --data_dir ${DATASET_DIR} \
     --tb_dir "" \
     --epochs ${MAX_EPOCHS} \
     --evaluate_every ${EVALUATE_EVERY} \
