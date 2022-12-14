@@ -50,7 +50,6 @@ then
     --lr_warmup_epochs ${LR_WARMUP_EPOCHS} \
     --num_workers 8 \
     --input_shape 128 128 128 \
-    --val_input_shape 64 64 64 \
     --device xla 2>&1 | tee -a ~/result.txt
 
 	# end timing

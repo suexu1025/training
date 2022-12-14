@@ -116,7 +116,7 @@ def gaussian_kernel(n, std):
 def sliding_window_inference(inputs, labels, roi_shape, model, overlap=0.5, mode="gaussian",
                              padding_mode="constant", padding_val=0.0, out_dim=3):
     labels = labels.type(torch.int8)
-    inputs = inputs.type(torch.float16)
+    inputs = inputs.type(torch.bfloat16)
     image_shape = list(inputs.shape[2:])
     dim = len(image_shape)
     strides = [int(roi_shape[i] * (1 - overlap)) for i in range(dim)]
@@ -136,7 +136,7 @@ def sliding_window_inference(inputs, labels, roi_shape, model, overlap=0.5, mode
 
     padded_shape = inputs.shape[2:]
     size = [(inputs.shape[2:][i] - roi_shape[i]) // strides[i] + 1 for i in range(dim)]
-    result = torch.zeros(size=(1, out_dim, *padded_shape), dtype=torch.float, device=inputs.device)
+    result = torch.zeros(size=(1, out_dim, *padded_shape), dtype=torch.bfloat16, device=inputs.device)
     norm_map = torch.zeros_like(result)
     if mode == "constant":
         norm_patch = torch.ones(size=roi_shape, dtype=norm_map.dtype, device=norm_map.device)
