@@ -7,7 +7,7 @@ set -e
 
 SEED=${1:--1}
 
-MAX_EPOCHS=1000
+MAX_EPOCHS=3000
 QUALITY_THRESHOLD="0.908"
 START_EVAL_AT=${6:-1000}
 EVALUATE_EVERY=20
@@ -35,7 +35,7 @@ then
 # mllog_event(key=constants.CACHE_CLEAR, value=True)"
 
   PJRT_DEVICE=TPU python3 main.py --data_dir ${DATASET_DIR} \
-    --tb_dir "gs://us-central1-qinwen-composer-beaf79dc-bucket/tf_logs/" \
+    --tb_dir "" \
     --epochs ${MAX_EPOCHS} \
     --evaluate_every ${EVALUATE_EVERY} \
     --start_eval_at ${START_EVAL_AT} \
