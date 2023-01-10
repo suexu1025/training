@@ -2,6 +2,7 @@ import random
 import numpy as np
 import scipy.ndimage
 from torch.utils.data import Dataset,DataLoader
+import torch
 from torchvision import transforms
 import gcsfs
 fs = gcsfs.GCSFileSystem()
