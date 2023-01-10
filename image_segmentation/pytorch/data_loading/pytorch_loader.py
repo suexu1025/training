@@ -161,12 +161,12 @@ class PytTrain(Dataset):
         self,
         images, labels, 
         **kwargs): 
-        channels_in=4,
-        channels_out=4,
-        shape=(128, 128, 128),
-        device="cpu",
-        layout="NCDHW",
-        scalar=True,
+        channels_in=4
+        channels_out=4
+        shape=(128, 128, 128)
+        device="cpu"
+        layout="NCDHW"
+        scalar=True
         shape = tuple(shape)
         x_shape = (channels_in,) + shape if layout == "NCDHW" else shape + (channels_in,)
         self.x = torch.rand(
