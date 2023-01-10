@@ -159,8 +159,7 @@ class PytTrain(Dataset):
     def __init__(
         self,
         images, labels, 
-        **kwargs)
-    ): 
+        **kwargs): 
         channels_in=4,
         channels_out=4,
         shape=(128, 128, 128),
