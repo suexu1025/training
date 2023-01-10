@@ -7,7 +7,7 @@ set -e
 
 SEED=${1:--1}
 
-MAX_EPOCHS=${10:-1000}
+MAX_EPOCHS=${10:-10}
 QUALITY_THRESHOLD=${9:-"0.84"}
 START_EVAL_AT=${6:-200}
 EVALUATE_EVERY=${11:-20}
@@ -34,7 +34,7 @@ then
 # from runtime.logging import mllog_event
 # mllog_event(key=constants.CACHE_CLEAR, value=True)"
 
-  PJRT_DEVICE=TPU numactl --cpunodebind=0 python3 main.py --data_dir ${DATASET_DIR} \
+  PJRT_DEVICE=TPU python3 main.py --data_dir ${DATASET_DIR} \
     --tb_dir "" \
     --epochs ${MAX_EPOCHS} \
     --evaluate_every ${EVALUATE_EVERY} \
