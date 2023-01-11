@@ -46,6 +46,10 @@ class Dice(Metric):
 
         for i in range(self.n_class):
             p_i, y_i = p[:, i], y[:, i]
+            if y_i.dim() == 5 and y_i.shape[0] == 1: 
+                torch.squeeze(y_i, 0)
+            else:
+                assert("unexpected label shape")
             if (y_i != 1).all():
                 # no foreground class
                 scores[i - 1] += 1 if (p_i != 1).all() else 0
