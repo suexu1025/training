@@ -8,7 +8,7 @@ from mlperf_logging import mllog
 from mlperf_logging.mllog import constants
 
 from data_loading.data_loader.unet3d_data_loader import get_data_loaders
-from model.losses import DiceCELoss, DiceScore
+from model.losses import DiceCELoss, DiceScore, LossBraTS
 from model.unet3d import Unet3D
 from runtime.arguments import PARSER
 from runtime.callbacks import get_callbacks
@@ -161,6 +161,9 @@ def main(local_rank, flags):
         include_background=flags.include_background,
         num_classes=4 if flags.use_brats else 3
     )
+
+    loss_fn = LossBraTS()
+    score_fn = DiceMetric(n_class=3, brats=True)
 
     if flags.exec_mode == "train":
         trainer = get_trainer(
