@@ -12,14 +12,8 @@ from torch.utils.data import Dataset
 import glob
 import tensorflow.io as io
 
-def list_files_with_pattern(path, files_pattern):
-    data = sorted(io.Gfile.glob(os.path.join(path, files_pattern)))
-    assert len(data) > 0, f"Found no data at {path}"
-    return data
-
-
 def load_data(path, files_pattern):
-    data = sorted(io.Gfile.glob((os.path.join(path, files_pattern))))
+    data = sorted(io.gfile.glob((os.path.join(path, files_pattern))))
     assert len(data) > 0, f"Found no data at {path}"
     return data
 
