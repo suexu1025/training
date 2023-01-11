@@ -161,6 +161,7 @@ class PytTrain(Dataset):
         self,
         images, labels, 
         **kwargs): 
+        self.images, self.labels = images, labels
         channels_in=4
         channels_out=4
         shape=(128, 128, 128)
