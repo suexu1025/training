@@ -9,6 +9,7 @@ from mlperf_logging.mllog import constants
 
 from data_loading.data_loader.unet3d_data_loader import get_data_loaders
 from model.losses import DiceCELoss, DiceScore, LossBraTS
+from model.metrics import Dice as DiceMetric
 from model.unet3d import Unet3D
 from runtime.arguments import PARSER
 from runtime.callbacks import get_callbacks
