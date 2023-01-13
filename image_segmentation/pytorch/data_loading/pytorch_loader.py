@@ -153,8 +153,8 @@ class PytTrain(Dataset):
             data = {"image": np.load(f), "label": np.load(g)}
         data = self.rand_crop(data)
         data = self.train_transforms(data)
-        data["image"]=np.transpose(data["image"],(1,2,3,0))
-        data["label"]=np.transpose(data["label"],(1,2,3,0))        
+        #data["image"]=np.transpose(data["image"],(1,2,3,0))
+        #data["label"]=np.transpose(data["label"],(1,2,3,0))        
         return data["image"], data["label"]
 
 # class PytTrain(Dataset):
