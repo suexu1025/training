@@ -61,7 +61,7 @@ def get_data_loaders(
         drop_last=False,
     )
 
-    #train_loader = pl.MpDeviceLoader(train_loader, device)
-    #val_loader = pl.MpDeviceLoader(val_loader, device)
+    train_loader = pl.MpDeviceLoader(train_loader, device)
+    val_loader = pl.MpDeviceLoader(val_loader, device)
 
     return train_loader, val_loader
