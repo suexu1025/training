@@ -136,25 +136,26 @@ class GaussianNoise:
         return data
 
 
-# class PytTrain(Dataset):
-#     def __init__(self, images, labels, **kwargs):
-#         self.images, self.labels = images, labels
-#         self.train_transforms = get_train_transforms()
-#         patch_size, oversampling = kwargs["patch_size"], kwargs["oversampling"]
-#         self.patch_size = patch_size
-#         self.rand_crop = RandBalancedCrop(patch_size=patch_size, oversampling=oversampling)
+class PytTrain(Dataset):
+    def __init__(self, images, labels, dataset, **kwargs):
+        self.dataset = dataset
+        self.images, self.labels = images, labels
+        self.train_transforms = get_train_transforms()
+        patch_size, oversampling = kwargs["patch_size"], kwargs["oversampling"]
+        self.patch_size = patch_size
+        self.rand_crop = RandBalancedCrop(patch_size=patch_size, oversampling=oversampling)
 
-#     def __len__(self):
-#         return len(self.images)
+    def __len__(self):
+        return len(self.images)
 
-#     def __getitem__(self, idx):
-#         with fs.open(self.images[idx], 'rb') as f, fs.open(self.labels[idx], 'rb') as g:
-#             data = {"image": np.load(f), "label": np.load(g)}
-#         data = self.rand_crop(data)
-#         data = self.train_transforms(data)
-#         data["image"]=np.transpose(data["image"],(1,2,3,0))
-#         data["label"]=np.transpose(data["label"],(1,2,3,0))        
-#         return data["image"], data["label"]
+    def __getitem__(self, idx):
+        with fs.open(os.path.join(self.dataset, self.images[idx]), 'rb') as f, fs.open(os.path.join(self.dataset, self.labels[idx]), 'rb') as g:
+            data = {"image": np.load(f), "label": np.load(g)}
+        data = self.rand_crop(data)
+        data = self.train_transforms(data)
+        data["image"]=np.transpose(data["image"],(1,2,3,0))
+        data["label"]=np.transpose(data["label"],(1,2,3,0))        
+        return data["image"], data["label"]
 
 class PytTrain(Dataset):
     def __init__(
