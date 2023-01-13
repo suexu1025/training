@@ -197,7 +197,7 @@ class PytTrain(Dataset):
 #         return self.x[idx % 32], self.y[idx % 32]
 
 class PytVal(Dataset):
-    def __init__(self, images, labels):
+    def __init__(self, images, labels,dataset):
         self.images, self.labels = images, labels
 
     def __len__(self):
