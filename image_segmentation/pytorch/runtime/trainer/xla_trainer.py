@@ -29,14 +29,14 @@ class XLATrainer(UNet3DTrainer):
         super().__init__(
             flags, model, train_loader, val_loader, loss_fn, score_fn, device, callbacks
         )
-        assert isinstance(self.train_loader, pl.MpDeviceLoader), (
-            "training data loader for XLATrainer must be an instance of "
-            "torch_xla.distributed.parallel_loader.MpDeviceLoader"
-        )
-        assert isinstance(self.val_loader, pl.MpDeviceLoader), (
-            "validation data loader for XLATrainer must be an instance of "
-            "torch_xla.distributed.parallel_loader.MpDeviceLoader"
-        )
+        # assert isinstance(self.train_loader, pl.MpDeviceLoader), (
+        #     "training data loader for XLATrainer must be an instance of "
+        #     "torch_xla.distributed.parallel_loader.MpDeviceLoader"
+        # )
+        # assert isinstance(self.val_loader, pl.MpDeviceLoader), (
+        #     "validation data loader for XLATrainer must be an instance of "
+        #     "torch_xla.distributed.parallel_loader.MpDeviceLoader"
+        # )
 
         # Setup grad scaler and autocast
         self.scaler: torch_xla.amp.GradScaler = torch_xla.amp.grad_scaler.GradScaler()
