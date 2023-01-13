@@ -48,6 +48,8 @@ def get_data_loaders(
         num_workers=flags.num_workers,
         pin_memory=False,
         drop_last=True,
+        prefetch_factor=4,
+        persistent_workers=True,
     )
     val_loader = DataLoader(
         val_dataset,
@@ -59,7 +61,7 @@ def get_data_loaders(
         drop_last=False,
     )
 
-    train_loader = pl.MpDeviceLoader(train_loader, device)
-    val_loader = pl.MpDeviceLoader(val_loader, device)
+    #train_loader = pl.MpDeviceLoader(train_loader, device)
+    #val_loader = pl.MpDeviceLoader(val_loader, device)
 
     return train_loader, val_loader

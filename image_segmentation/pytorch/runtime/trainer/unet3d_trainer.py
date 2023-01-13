@@ -93,52 +93,56 @@ class UNet3DTrainer(ABC):
                 self.train_sampler.set_epoch(epoch)
 
             loss_value = None
+            tic = time.time()
             for iteration, batch in enumerate(self.train_loader):
-                with self.get_step_trace_context():
-                    self.optimizer.zero_grad()
+                pass
+                # with self.get_step_trace_context():
+                #     self.optimizer.zero_grad()
 
-                    images, labels = batch
-                    images, labels = images.to(self.device), labels.to(self.device)
+                #     images, labels = batch
+                #     images, labels = images.to(self.device), labels.to(self.device)
 
-                    for callback in self.callbacks:
-                        callback.on_batch_start()
+                #     for callback in self.callbacks:
+                #         callback.on_batch_start()
 
-                    loss_value = self.train_step(iteration=iteration, images=images, labels=labels)
+                #     loss_value = self.train_step(iteration=iteration, images=images, labels=labels)
 
-                    loss_value = reduce_tensor(loss_value)
-                    cumulative_loss.append(loss_value)
-                    if self.summary_writer:
-                        test_utils.write_to_summary(
-                            self.summary_writer,
-                            global_step=epoch * 10000 // 64 + iteration,
-                            dict_to_write={
-                                'loss': loss_value.detach().cpu().numpy()
-                            })
-                    # in debug mode, log the train loss on each iteration
-                    if self.flags.debug:
-                        mllog_event(
-                            key="train_loss",
-                            value=loss_value,
-                            metadata={
-                                CONSTANTS.EPOCH_NUM: epoch,
-                                "iteration_num": iteration,
-                            },
-                            sync=False,
-                        )
+                #     loss_value = reduce_tensor(loss_value)
+                #     cumulative_loss.append(loss_value)
+                #     if self.summary_writer:
+                #         test_utils.write_to_summary(
+                #             self.summary_writer,
+                #             global_step=epoch * 10000 // 64 + iteration,
+                #             dict_to_write={
+                #                 'loss': loss_value.detach().cpu().numpy()
+                #             })
+                #     # in debug mode, log the train loss on each iteration
+                #     if self.flags.debug:
+                #         mllog_event(
+                #             key="train_loss",
+                #             value=loss_value,
+                #             metadata={
+                #                 CONSTANTS.EPOCH_NUM: epoch,
+                #                 "iteration_num": iteration,
+                #             },
+                #             sync=False,
+                #         )
+            toc = time.time() - tic
+            print("epoch time is %d", toc)
             if self.summary_writer:
                 test_utils.write_to_summary(
                     self.summary_writer,
                     global_step = epoch,
                     dict_to_write={'learning rate':self.optimizer.param_groups[0]["lr"]})
-            mllog_end(
-                key=CONSTANTS.EPOCH_STOP,
-                metadata={
-                    CONSTANTS.EPOCH_NUM: epoch,
-                    "current_lr": self.optimizer.param_groups[0]["lr"],
-                    "loss": sum(cumulative_loss) / len(cumulative_loss)
-                },
-                sync=False,
-            )
+            # mllog_end(
+            #     key=CONSTANTS.EPOCH_STOP,
+            #     metadata={
+            #         CONSTANTS.EPOCH_NUM: epoch,
+            #         "current_lr": self.optimizer.param_groups[0]["lr"],
+            #         "loss": sum(cumulative_loss) / len(cumulative_loss)
+            #     },
+            #     sync=False,
+            # )
             try:
                 mllog_end(
                     key=CONSTANTS.EPOCH_STOP,
@@ -182,7 +186,7 @@ class UNet3DTrainer(ABC):
                     self.device,
                     epoch,
                 )
-                eval_metrics["train_loss"] = sum(cumulative_loss) / len(cumulative_loss)
+                #eval_metrics["train_loss"] = sum(cumulative_loss) / len(cumulative_loss)
 
                 mllog_event(
                     key=CONSTANTS.EVAL_ACCURACY,

@@ -42,7 +42,7 @@ class XLATrainer(UNet3DTrainer):
         self.scaler: torch_xla.amp.GradScaler = torch_xla.amp.grad_scaler.GradScaler()
 
         # Setup train sampler
-        self.train_sampler = self.train_loader._loader.sampler
+        self.train_sampler = self.train_loader.sampler
 
         # Get hardware type
         self.hw_type = xm.xla_device_hw(self.device)
