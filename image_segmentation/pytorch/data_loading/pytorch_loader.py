@@ -153,3 +153,14 @@ class PytTrain(Dataset):
         data = self.rand_crop(data)
         data = self.train_transforms(data)     
         return data["image"], data["label"]
+
+class PytVal(Dataset):	
+    def __init__(self, images, labels, dataset):	
+        self.images, self.labels = images, labels	
+
+    def __len__(self):	
+        return len(self.images)	
+
+    def __getitem__(self, idx):	
+        with fs.open(os.path.join(self.dataset, self.images[idx]), 'rb') as f, fs.open(os.path.join(self.dataset, self.labels[idx]), 'rb') as g:	
+            return np.load(f), np.load(g)
