@@ -10,17 +10,10 @@ from data_loading.pytorch_loader import PytTrain, PytVal
 from runtime.logging import mllog_event
 from torch.utils.data import Dataset
 import glob
-import gcsfs
-fs = gcsfs.GCSFileSystem()
-
-def list_files_with_pattern(path, files_pattern):
-    data = sorted(fs.glob(os.path.join(path, files_pattern)))
-    assert len(data) > 0, f"Found no data at {path}"
-    return data
-
+import tensorflow.io as io
 
 def load_data(path, files_pattern):
-    data = sorted(fs.glob((os.path.join(path, files_pattern))))
+    data = sorted(io.gfile.glob((os.path.join(path, files_pattern))))
     assert len(data) > 0, f"Found no data at {path}"
     return data
 
@@ -47,6 +40,8 @@ def get_data_split(path: str, num_shards: int, shard_id: int, use_brats: bool, f
     val_cases_list = [case.rstrip("\n") for case in val_cases_list]
     imgs = load_data(path, "*_x.npy")
     lbls = load_data(path, "*_y.npy")
+    imgs = [name.split('/')[-1] for name in imgs]
+    lbls = [name.split('/')[-1] for name in lbls]
     assert len(imgs) == len(lbls), f"Found {len(imgs)} volumes but {len(lbls)} corresponding masks"
     imgs_train, lbls_train, imgs_val, lbls_val = [], [], [], []
     for (case_img, case_lbl) in zip(imgs, lbls):
@@ -56,6 +51,7 @@ def get_data_split(path: str, num_shards: int, shard_id: int, use_brats: bool, f
         else:
             imgs_train.append(case_img)
             lbls_train.append(case_lbl)
+    
     mllog_event(key="train_samples", value=len(imgs_train), sync=False)
     mllog_event(key="eval_samples", value=len(imgs_val), sync=False)
     imgs_val, lbls_val = split_eval_data(imgs_val, lbls_val, num_shards, shard_id)
@@ -123,8 +119,8 @@ def get_data_loaders(flags: Namespace, num_shards: int, global_rank: int, device
             "oversampling": flags.oversampling,
             "seed": flags.seed,
         }
-        train_dataset = PytTrain(x_train, y_train, **train_data_kwargs)
-        val_dataset = PytVal(x_val, y_val)
+        train_dataset = PytTrain(x_train, y_train, flags.data_dir, **train_data_kwargs)
+        val_dataset = PytVal(x_val, y_val, flags.data_dir)
     else:
         raise ValueError(f"Loader {flags.loader} unknown. Valid loaders are: synthetic, pytorch")
 

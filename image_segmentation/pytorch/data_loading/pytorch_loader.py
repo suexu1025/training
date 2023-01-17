@@ -136,7 +136,8 @@ class GaussianNoise:
 
 
 class PytTrain(Dataset):
-    def __init__(self, images, labels, **kwargs):
+    def __init__(self, images, labels, dataset, **kwargs):
+        self.dataset = dataset
         self.images, self.labels = images, labels
         self.train_transforms = get_train_transforms()
         patch_size, oversampling = kwargs["patch_size"], kwargs["oversampling"]
@@ -147,20 +148,8 @@ class PytTrain(Dataset):
         return len(self.images)
 
     def __getitem__(self, idx):
-        with fs.open(self.images[idx], 'rb') as f, fs.open(self.labels[idx], 'rb') as g:
+        with fs.open(os.path.join(self.dataset, self.images[idx]), 'rb') as f, fs.open(os.path.join(self.dataset, self.labels[idx]), 'rb') as g:
             data = {"image": np.load(f), "label": np.load(g)}
         data = self.rand_crop(data)
-        data = self.train_transforms(data)
+        data = self.train_transforms(data)     
         return data["image"], data["label"]
-
-class PytVal(Dataset):
-    def __init__(self, images, labels):
-        self.images, self.labels = images, labels
-
-    def __len__(self):
-        return len(self.images)
-
-    def __getitem__(self, idx):
-        with fs.open(self.images[idx], 'rb') as f, fs.open(self.labels[idx], 'rb') as g:
-            return np.load(f), np.load(g)
-
