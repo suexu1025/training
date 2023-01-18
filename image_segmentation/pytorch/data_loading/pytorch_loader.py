@@ -157,7 +157,8 @@ class PytTrain(Dataset):
 
 class PytVal(Dataset):	
     def __init__(self, images, labels, dataset):	
-        self.images, self.labels = images, labels	
+        self.images, self.labels = images, labels
+        self.dataset = dataset	
 
     def __len__(self):	
         return len(self.images)	
