@@ -38,7 +38,7 @@ class UNet3DTrainer(ABC):
         self.loss_fn: torch.nn.Module = loss_fn
 
         # move model and loss_fn to device
-        #self.model.to(self.device)
+        self.model.to(self.device)
         self.loss_fn.to(self.device)
         # setup optimizer
         self.optimizer = UNet3DTrainer.get_optimizer(self.model.parameters(), flags)

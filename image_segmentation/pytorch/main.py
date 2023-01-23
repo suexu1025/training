@@ -125,7 +125,7 @@ def main(local_rank, flags):
 
         xm.optimizer_step = patched_optimizer_step
 
-    model = model.to(device)
+    #model = model.to(device)
 
     mllog_end(key=constants.INIT_STOP, sync=True)
     mllog_start(key=constants.RUN_START, sync=True)
@@ -185,6 +185,29 @@ def main(local_rank, flags):
         print("Invalid exec_mode.")
         pass
 
+import ray
+class Network(object):
+    def __init__(self, lr=0.01, momentum=0.5, data_dir="~/data"):
+        self.device = device = torch.device("cuda" if use_cuda else "cpu")
+        self.train_loader, self.test_loader = dataset_creator(use_cuda, data_dir)
+
+        self.model = Model().to(device)
+        self.optimizer = optim.SGD(
+            self.model.parameters(), lr=lr, momentum=momentum)
+
+    def train(self):
+        train(self.model, self.device, self.train_loader, self.optimizer)
+        return test(self.model, self.device, self.test_loader)
+
+    def get_weights(self):
+        return self.model.state_dict()
+
+    def set_weights(self, weights):
+        self.model.load_state_dict(weights)
+
+    def save(self):
+        torch.save(self.model.state_dict(), "mnist_cnn.pt")
+
 if __name__ == "__main__":
     flags = PARSER.parse_args()
     # record the program start time, which is later used for
@@ -200,5 +223,88 @@ if __name__ == "__main__":
         )
         local_rank = int(os.environ["LOCAL_RANK"])
         main(local_rank, flags)
+    elif flags.device == "ray":
+        is_distributed = init_distributed(flags)
+
+        mllog.config(filename=os.path.join(os.path.dirname(os.path.abspath(__file__)), "unet3d.log"))
+        mllogger = mllog.get_mllogger()
+        mllogger.logger.propagate = False
+        mllog_start(key=constants.INIT_START)
+
+        dllogger = get_dllogger(flags)
+        device = get_device(local_rank)
+        world_size = get_world_size()
+        local_rank = get_rank()
+        worker_seeds, shuffling_seeds = setup_seeds(
+            master_seed= flags.seed if flags.seed != -1 else None, epochs=flags.epochs, device=device
+        )
+        worker_seed = worker_seeds[local_rank]
+        seed_everything(worker_seed)
+        mllog_event(
+            key=constants.SEED,
+            value=flags.seed if flags.seed != -1 else worker_seed,
+            sync=False,
+        )
+
+        if is_main_process():
+            mlperf_submission_log()
+            mlperf_run_param_log(flags)
+
+        callbacks = get_callbacks(flags, dllogger, local_rank, world_size)
+
+        if flags.use_brats:
+            model = Unet3D(4, 4, normalization=flags.normalization, activation=flags.activation)
+        else:
+            model = Unet3D(1, 3, normalization=flags.normalization, activation=flags.activation)
+        flags.seed = worker_seed
+
+        mllog_end(key=constants.INIT_STOP, sync=True)
+        mllog_start(key=constants.RUN_START, sync=True)
+        mllog_event(key="training_params", value=str(flags), sync=True)
+        train_loader, val_loader = get_data_loaders(
+            flags=flags,
+            num_shards=world_size,
+            global_rank=local_rank,
+            device=device,
+        )
+        samples_per_epoch = world_size * len(train_loader) * flags.batch_size
+        mllog_event(key="samples_per_epoch", value=samples_per_epoch, sync=False)
+        flags.evaluate_every = flags.evaluate_every or ceil(20 * DATASET_SIZE / samples_per_epoch)
+        flags.start_eval_at = flags.start_eval_at or ceil(1000 * DATASET_SIZE / samples_per_epoch)
+
+        mllog_event(
+            key=constants.GLOBAL_BATCH_SIZE,
+            value=flags.batch_size * world_size * flags.ga_steps,
+            sync=False,
+        )
+        mllog_event(key=constants.GRADIENT_ACCUMULATION_STEPS, value=flags.ga_steps)
+        loss_fn = DiceCELoss(
+            to_onehot_y=True,
+            use_softmax=True,
+            layout=flags.layout,
+            include_background=flags.include_background,
+            num_classes=4 if flags.use_brats else 3
+        )
+        score_fn = DiceScore(
+            to_onehot_y=True,
+            use_argmax=True,
+            layout=flags.layout,
+            include_background=flags.include_background,
+            num_classes=4 if flags.use_brats else 3
+        )
+        trainer = get_trainer(
+            flags, model, train_loader, val_loader, loss_fn, score_fn, device, callbacks
+        )
+        trainer.train()
+
+        ray.init()
+        RemoteNetwork = ray.remote(trainer)
+        NetworkActor = RemoteNetwork.remote()
+        NetworkActor1 = RemoteNetwork.remote()
+        NetworkActor2 = RemoteNetwork.remote()
+        NetworkActor3 = RemoteNetwork.remote()   
+
+        ray.get([NetworkActor.train.remote(), NetworkActor1.train.remote(),NetworkActor2.train.remote(),NetworkActor3.train.remote()])
+    
     else:
         raise ValueError(f"Device {flags.device} unknown. Valid devices are: cuda, xla")
