@@ -162,9 +162,10 @@ def main(local_rank, flags):
         include_background=flags.include_background,
         num_classes=4 if flags.use_brats else 3
     )
-
-    loss_fn = LossBraTS()
-    score_fn = DiceMetric(n_class=3, brats=True)
+    
+    # to match original paper, but still high variance
+    # loss_fn = LossBraTS()
+    # score_fn = DiceMetric(n_class=4 if flags.use_brats else 3, brats=True)
 
     if flags.exec_mode == "train":
         trainer = get_trainer(
