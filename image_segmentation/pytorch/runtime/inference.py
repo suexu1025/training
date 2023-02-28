@@ -39,22 +39,22 @@ def evaluate(flags, model, loader, loss_fn, score_fn, device, epoch=0, is_distri
             image, label = image.to(device), label.to(device)
             if image.numel() == 0:
                 continue
-            #with autocast(enabled=flags.amp):
-            output, label = sliding_window_inference(
-                inputs=image,
-                labels=label,
-                roi_shape=flags.val_input_shape,
-                model=model,
-                overlap=flags.overlap,
-                mode="gaussian",
-                padding_val=0 if flags.use_brats else -2.2,
-                out_dim=4 if flags.use_brats else 3
-            )
-            eval_loss_value = loss_fn(output, label)
-            scores.append(score_fn(output, label))
-            eval_loss.append(eval_loss_value)
-            del output
-            del label
+            with autocast(enabled=flags.amp):
+                output, label = sliding_window_inference(
+                    inputs=image,
+                    labels=label,
+                    roi_shape=flags.val_input_shape,
+                    model=model,
+                    overlap=flags.overlap,
+                    mode="gaussian",
+                    padding_val=0 if flags.use_brats else -2.2,
+                    out_dim=4 if flags.use_brats else 3
+                )
+                eval_loss_value = loss_fn(output, label)
+                scores.append(score_fn(output, label))
+                eval_loss.append(eval_loss_value)
+                del output
+                del label
             
             mllog_event(
                     key="eval_step",
