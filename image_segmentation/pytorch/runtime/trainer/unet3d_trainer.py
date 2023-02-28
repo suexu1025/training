@@ -110,7 +110,7 @@ class UNet3DTrainer(ABC):
                     if self.summary_writer:
                         test_utils.write_to_summary(
                             self.summary_writer,
-                            global_step=epoch * 10000 // 64 + iteration,
+                            global_step=epoch * len(train_loader._loader) // self.flags.batch_size + iteration,
                             dict_to_write={
                                 'loss': loss_value.detach().cpu().numpy()
                             })

@@ -59,12 +59,6 @@ class XLATrainer(UNet3DTrainer):
                 self.summary_writer = test_utils.get_summary_writer(
                     self.summary_dir) if self.summary_interval else None
 
-            # test_utils.write_to_summary(
-            # self.summary_writer, 
-            # global_step = 0,
-            # dict_to_write = {
-            #     'optimizer': str(flags.optimizer),
-            #     'tb dir': self.summary_dir})
             xm.master_print('tb_summery_dir is {}'.format(self.summary_dir))
 
     def __del__(self):
