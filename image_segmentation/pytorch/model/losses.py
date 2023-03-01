@@ -57,7 +57,7 @@ class Dice:
 
         intersection = torch.sum(target * prediction, dim=reduce_axis)
         target_sum = torch.sum(target, dim=reduce_axis)
-        prediction_sum = torch.sum(prediction, dim=reduce_axis).float()
+        prediction_sum = torch.sum(prediction, dim=reduce_axis)
 
         return (2.0 * intersection + self.smooth_nr) / (target_sum + prediction_sum + self.smooth_dr)
 
