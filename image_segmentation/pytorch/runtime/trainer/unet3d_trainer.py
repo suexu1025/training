@@ -11,7 +11,7 @@ from runtime.logging import CONSTANTS, mllog_end, mllog_event, mllog_start
 from torch.nn import Parameter
 from torch.optim import SGD, Adam
 
-
+import torch_xla.test.test_utils as test_utils
 class UNet3DTrainer(ABC):
     """Base class for training UNet3D in PyTorch"""
 
@@ -48,6 +48,8 @@ class UNet3DTrainer(ABC):
                 milestones=flags.lr_decay_epochs,
                 gamma=flags.lr_decay_factor,
             )
+
+        self.summary_writer = None
 
     def train(self):
         """Trains the UNet3D model"""
@@ -103,8 +105,15 @@ class UNet3DTrainer(ABC):
 
                     loss_value = self.train_step(iteration=iteration, images=images, labels=labels)
 
-                    #loss_value = reduce_tensor(loss_value).detach().cpu().numpy()
+                    loss_value = reduce_tensor(loss_value)
                     cumulative_loss.append(loss_value)
+                    if self.summary_writer:
+                        test_utils.write_to_summary(
+                            self.summary_writer,
+                            global_step=epoch * len(train_loader._loader) // self.flags.batch_size + iteration,
+                            dict_to_write={
+                                'loss': loss_value.detach().cpu().numpy()
+                            })
                     # in debug mode, log the train loss on each iteration
                     if self.flags.debug:
                         mllog_event(
@@ -116,7 +125,11 @@ class UNet3DTrainer(ABC):
                             },
                             sync=False,
                         )
-
+            if self.summary_writer:
+                test_utils.write_to_summary(
+                    self.summary_writer,
+                    global_step = epoch,
+                    dict_to_write={'learning rate':self.optimizer.param_groups[0]["lr"]})
             mllog_end(
                 key=CONSTANTS.EPOCH_STOP,
                 metadata={
@@ -126,6 +139,17 @@ class UNet3DTrainer(ABC):
                 },
                 sync=False,
             )
+            try:
+                mllog_end(
+                    key=CONSTANTS.EPOCH_STOP,
+                    metadata={
+                        CONSTANTS.EPOCH_NUM: epoch,
+                        "loss": sum(cumulative_loss) / len(cumulative_loss)
+                    },
+                    sync=False,
+                )
+            except:
+                pass
 
             # startup time is defined as the time between the program
             # starting and the 1st epoch ending
@@ -166,6 +190,15 @@ class UNet3DTrainer(ABC):
                     metadata={CONSTANTS.EPOCH_NUM: epoch},
                     sync=False,
                 )
+                if self.summary_writer:
+                    test_utils.write_to_summary(
+                        self.summary_writer,
+                        global_step = epoch,
+                        dict_to_write={
+                            'eval_loss':eval_metrics["eval_loss"],
+                            'mean_dice':eval_metrics["mean_dice"],
+                        })
+
                 mllog_end(
                     key=CONSTANTS.EVAL_STOP,
                     metadata={CONSTANTS.EPOCH_NUM: epoch},

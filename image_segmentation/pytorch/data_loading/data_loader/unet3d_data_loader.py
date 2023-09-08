@@ -9,16 +9,11 @@ import torch
 from data_loading.pytorch_loader import PytTrain, PytVal
 from runtime.logging import mllog_event
 from torch.utils.data import Dataset
-
-
-def list_files_with_pattern(path, files_pattern):
-    data = sorted(glob.glob(os.path.join(path, files_pattern)))
-    assert len(data) > 0, f"Found no data at {path}"
-    return data
-
+import glob
+import tensorflow.io as io
 
 def load_data(path, files_pattern):
-    data = sorted(glob.glob(os.path.join(path, files_pattern)))
+    data = sorted(io.gfile.glob((os.path.join(path, files_pattern))))
     assert len(data) > 0, f"Found no data at {path}"
     return data
 
@@ -34,13 +29,19 @@ def split_eval_data(x_val, y_val, num_shards, shard_id):
     y = [a.tolist() for a in np.array_split(y_val, num_shards)]
     return x[shard_id], y[shard_id]
 
+def get_data_split(path: str, num_shards: int, shard_id: int, use_brats: bool, foldidx: int):
+    if use_brats:
+        listfile = "brats_evaluation_cases_{}.txt".format(foldidx)
+    else:
+        listfile = "evaluation_cases.txt"
 
-def get_data_split(path: str, num_shards: int, shard_id: int):
-    with open("evaluation_cases.txt", "r") as f:
+    with open(listfile, "r") as f:
         val_cases_list = f.readlines()
     val_cases_list = [case.rstrip("\n") for case in val_cases_list]
     imgs = load_data(path, "*_x.npy")
     lbls = load_data(path, "*_y.npy")
+    imgs = [name.split('/')[-1] for name in imgs]
+    lbls = [name.split('/')[-1] for name in lbls]
     assert len(imgs) == len(lbls), f"Found {len(imgs)} volumes but {len(lbls)} corresponding masks"
     imgs_train, lbls_train, imgs_val, lbls_val = [], [], [], []
     for (case_img, case_lbl) in zip(imgs, lbls):
@@ -50,12 +51,11 @@ def get_data_split(path: str, num_shards: int, shard_id: int):
         else:
             imgs_train.append(case_img)
             lbls_train.append(case_lbl)
+    
     mllog_event(key="train_samples", value=len(imgs_train), sync=False)
     mllog_event(key="eval_samples", value=len(imgs_val), sync=False)
     imgs_val, lbls_val = split_eval_data(imgs_val, lbls_val, num_shards, shard_id)
     return imgs_train, imgs_val, lbls_train, lbls_val
-
-
 class SyntheticDataset(Dataset):
     def __init__(
         self,
@@ -105,22 +105,22 @@ def get_data_loaders(flags: Namespace, num_shards: int, global_rank: int, device
     :rtype: Union[Tuple[pl.MpDeviceLoader, pl.MpDeviceLoader], Tuple[DataLoader, DataLoader]]
     """
     if flags.loader == "synthetic":
-        train_dataset = SyntheticDataset(scalar=True, shape=flags.input_shape, layout=flags.layout)
-        val_dataset = SyntheticDataset(
+        train_dataset = SyntheticDataset(channels_in=4, channels_out=4, scalar=True, shape=flags.input_shape, layout=flags.layout)
+        val_dataset = SyntheticDataset(channels_in=4, channels_out=4, 
             scalar=True, shape=flags.val_input_shape, layout=flags.layout
         )
 
     elif flags.loader == "pytorch":
         x_train, x_val, y_train, y_val = get_data_split(
-            flags.data_dir, num_shards, shard_id=global_rank
+            flags.data_dir, num_shards, shard_id=global_rank, use_brats=flags.use_brats, foldidx = flags.fold_idx
         )
         train_data_kwargs = {
             "patch_size": flags.input_shape,
             "oversampling": flags.oversampling,
             "seed": flags.seed,
         }
-        train_dataset = PytTrain(x_train, y_train, **train_data_kwargs)
-        val_dataset = PytVal(x_val, y_val)
+        train_dataset = PytTrain(x_train, y_train, flags.data_dir, **train_data_kwargs)
+        val_dataset = PytVal(x_val, y_val, flags.data_dir)
     else:
         raise ValueError(f"Loader {flags.loader} unknown. Valid loaders are: synthetic, pytorch")
 

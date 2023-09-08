@@ -8,7 +8,8 @@ from mlperf_logging import mllog
 from mlperf_logging.mllog import constants
 
 from data_loading.data_loader.unet3d_data_loader import get_data_loaders
-from model.losses import DiceCELoss, DiceScore
+from model.losses import DiceCELoss, DiceScore, LossBraTS
+from model.metrics import Dice as DiceMetric
 from model.unet3d import Unet3D
 from runtime.arguments import PARSER
 from runtime.callbacks import get_callbacks
@@ -53,7 +54,7 @@ def main(local_rank, flags):
     world_size = get_world_size()
     local_rank = get_rank()
     worker_seeds, shuffling_seeds = setup_seeds(
-        master_seed=flags.seed, epochs=flags.epochs, device=device
+        master_seed= flags.seed if flags.seed != -1 else None, epochs=flags.epochs, device=device
     )
     worker_seed = worker_seeds[local_rank]
     seed_everything(worker_seed)
@@ -68,8 +69,12 @@ def main(local_rank, flags):
         mlperf_run_param_log(flags)
 
     callbacks = get_callbacks(flags, dllogger, local_rank, world_size)
+
+    if flags.use_brats:
+        model = Unet3D(4, 4, normalization=flags.normalization, activation=flags.activation)
+    else:
+        model = Unet3D(1, 3, normalization=flags.normalization, activation=flags.activation)
     flags.seed = worker_seed
-    model = Unet3D(1, 3, normalization=flags.normalization, activation=flags.activation)
 
     if flags.use_fsdp:
         import torch_xla.core.xla_model as xm
@@ -123,10 +128,6 @@ def main(local_rank, flags):
 
     model = model.to(device)
 
-    param_nums = sum(p.numel() for p in model.parameters().values())
-
-    mllog_event(key="per-TPU (sharded) parameter num", value=param_nums)
-
     mllog_end(key=constants.INIT_STOP, sync=True)
     mllog_start(key=constants.RUN_START, sync=True)
     mllog_event(key="training_params", value=str(flags), sync=True)
@@ -152,12 +153,14 @@ def main(local_rank, flags):
         use_softmax=True,
         layout=flags.layout,
         include_background=flags.include_background,
+        num_classes=4 if flags.use_brats else 3
     )
     score_fn = DiceScore(
         to_onehot_y=True,
         use_argmax=True,
         layout=flags.layout,
         include_background=flags.include_background,
+        num_classes=4 if flags.use_brats else 3
     )
 
     if flags.exec_mode == "train":
@@ -183,13 +186,11 @@ def main(local_rank, flags):
         print("Invalid exec_mode.")
         pass
 
-
 if __name__ == "__main__":
     flags = PARSER.parse_args()
     # record the program start time, which is later used for
     # calculating the training start-up time
     flags.program_start_time = time.time()
-
     if flags.device == "xla":
         xmp.spawn(xla_main, args=(flags,))
     elif flags.device == "cuda":
